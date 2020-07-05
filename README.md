@@ -30,4 +30,4 @@ Currently the accelerometer only outputs Z axis data, to reduce load on serial c
 When mounting to machinery, consider using a hard plastic module that can be taped tightly to the machine. In the future, maybe we also could use a few strong magnets? Keep in mind orientation of accelerometer.
 
 ### Future thoughts
-The Time series is also useful to look at, but currently it is difficult to see that.
+The Time series is also useful to look at, but currently it is difficult to see that. We may also need to change I2C frequency in Wire.h to 400kHz.

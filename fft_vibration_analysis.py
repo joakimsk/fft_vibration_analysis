@@ -1,4 +1,8 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
+# To be used together with Arduino and USB serial, to visualize and do FFT on accelerometer data
+
 import sys
 import glob
 import serial

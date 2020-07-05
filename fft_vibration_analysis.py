@@ -7,6 +7,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 import numpy as np
 from collections import deque  # import a "circular" list
 from threading import Thread, Lock
+from itertools import islice
 
 #Reads the available serial ports
 if sys.platform.startswith('win'):
@@ -28,20 +29,21 @@ for port in ports:
         pass
 print(result)
 
-usb = input('Entre com a porta desejada: ')
+usb = input('Choose serial port: ')
 
-arduinoData = serial.Serial(usb, 115200)  # 115200
+arduinoData = serial.Serial(usb, 115200)
 
 
 freq = 2000              # 1/T
-guarda = 500             # 200
-r = range(0, int(freq/2+1), int(freq/guarda))
-frequencia = np.fft.fftfreq(guarda, d=1/freq)
+samples = 2000             # 500
+#frequencia = np.linspace(0.0, 1.0/(2.0*(1/freq)), int(samples/2))
+frequencia = np.linspace(0.0, 1.0/(2.0*1/freq), freq//2)
 
-acelx = deque([], maxlen=guarda)
+
+acelx = deque([], maxlen=samples)
 
 win = pg.GraphicsWindow()
-win.setWindowTitle('Espectro')
+win.setWindowTitle('Spectrum')
 pg.setConfigOption('foreground', 'w')
 
 p1 = win.addPlot(
@@ -53,7 +55,7 @@ curve1 = p1.plot(acelx,
                  pen=linha1,
                  name="<span style='color: #ffffff; font-weight: bold; font-size: 12px'>X</span>")
 
-p1.setRange(yRange=[-5, 5])
+p1.setRange(yRange=[-5, 5], xRange=[0, 500])
 p1.setLabel('bottom',
             text="<span style='color: #ffffff; font-weight: bold; font-size: 12px'>Time</span>")
 p1.showGrid(x=True, y=False)
@@ -63,43 +65,52 @@ p2 = win.addPlot()
 linha4 = pg.mkPen((255, 0, 0), width=2)
 p2.addLegend(offset=(10, 5))
 
-curve2 = p2.plot(acelx,
+curve2 = p2.plot(frequencia,
                  pen=linha4,
                  name="<span style='color: #ffffff; font-weight: bold; font-size: 12px'>Amplitude</span>")
 
-p2.setRange(yRange=[0, 1000], xRange=[0, int(freq/2)])
+p2.setRange(xRange=[0, int(freq/2)])
 p2.setLabel('bottom',
             text="<span style='color: #ffffff; font-weight: bold; font-size: 12px'>Frequency (Hz)</span>")
 p2.showGrid(x=False, y=True)
+ax = p2.getAxis('bottom')
+ax.setTicks([[(v, str(v)) for v in np.arange(0, int(freq/2)+1, 100)]])
 
-i = 0
+#i = 0
 data = []
-lock = Lock()
+#lock = Lock()
+
+
 def data_input():
-    global i, data
+    global data  # , i
     for line in arduinoData:
         try:
-            i+=1
+            #i+=1
             acelx.append(float(line))
-            with lock:
-                if i > len(acelx):
-                    data = np.fft.fft(acelx)
+            print(len(acelx))
+            #with lock:
+            if len(acelx) == samples:
+                data = np.fft.fft(acelx)
         except ValueError:
             pass
+
 
 # start the data input thread. This will run in the background unaffected by the GUI.
 t = Thread(target=data_input)
 t.daemon = True
 t.start()
 
+
 def update():
-    curve1.setData(acelx)
-    if i > len(acelx):
-        curve2.setData(frequencia[:int(guarda/2)], abs(np.real(data[:int(guarda/2)])))
+    curve1.setData(deque(islice(acelx, 1500, 2000), maxlen=500))
+    #curve1.setPos(i, 0)
+    if len(acelx) == samples:
+        curve2.setData((2/samples * np.abs(data[0:np.int(samples/2)])))
+
 
 timer = pg.QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(0)
+timer.start(100)
 
 if __name__ == '__main__':
     import sys

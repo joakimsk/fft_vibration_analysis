@@ -1,4 +1,4 @@
-## fft_vibration_analysis
+## vibranalysis
 
 Fork from [Klebiano](https://github.com/Klebiano/Accelerometer-FFT---Real-time), have added arduino program for MMA845X, with modified Adafruit library.
 
